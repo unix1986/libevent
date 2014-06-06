@@ -115,7 +115,9 @@ dump_request_cb(struct evhttp_request *req, void *arg)
 	struct evkeyval *header;
 	struct evbuffer *buf;
 
+	// 获取浏览器请求的命令类型
 	switch (evhttp_request_get_command(req)) {
+
 	case EVHTTP_REQ_GET: cmdtype = "GET"; break;
 	case EVHTTP_REQ_POST: cmdtype = "POST"; break;
 	case EVHTTP_REQ_HEAD: cmdtype = "HEAD"; break;
@@ -129,9 +131,12 @@ dump_request_cb(struct evhttp_request *req, void *arg)
 	}
 
 	printf("Received a %s request for %s\nHeaders:\n",
+		// 获取用户请求url
 	    cmdtype, evhttp_request_get_uri(req));
 
+	// 获取请求headers
 	headers = evhttp_request_get_input_headers(req);
+
 	for (header = headers->tqh_first; header;
 	    header = header->next.tqe_next) {
 		printf("  %s: %s\n", header->key, header->value);
@@ -346,27 +351,27 @@ main(int argc, char **argv)
 		return 1;
 	}
 
+	// step1: create base;
 	base = event_base_new();
 	if (!base) {
 		fprintf(stderr, "Couldn't create an event_base: exiting\n");
 		return 1;
 	}
 
-	/* Create a new evhttp object to handle requests. */
+	// step2: create httpd;
 	http = evhttp_new(base);
 	if (!http) {
 		fprintf(stderr, "couldn't create evhttp. Exiting.\n");
 		return 1;
 	}
 
-	/* The /dump URI will dump all requests to stdout and say 200 ok. */
+	// step3: set http://ip:port/dump 's callback function
 	evhttp_set_cb(http, "/dump", dump_request_cb, NULL);
 
-	/* We want to accept arbitrary requests, so we need to set a "generic"
-	 * cb.  We can also add callbacks for specific paths. */
+	// step4: set general callback function
 	evhttp_set_gencb(http, send_document_cb, argv[1]);
 
-	/* Now we tell the evhttp what port to listen on */
+	// step5: bind and listen socket
 	handle = evhttp_bind_socket_with_handle(http, "0.0.0.0", port);
 	if (!handle) {
 		fprintf(stderr, "couldn't bind to port %d. Exiting.\n",
@@ -411,7 +416,8 @@ main(int argc, char **argv)
 			return 1;
 		}
 	}
-
+	
+	// step6: dispatch request
 	event_base_dispatch(base);
 
 	return 0;
